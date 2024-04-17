@@ -125,6 +125,8 @@ void ImageViewer::on_actionOpen_triggered()
 		msgBox.setIcon(QMessageBox::Warning);
 		msgBox.exec();
 	}
+
+	image = Image(fileName);
 }
 void ImageViewer::on_actionSave_as_triggered()
 {

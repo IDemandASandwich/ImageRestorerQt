@@ -1,39 +1,42 @@
 #include "Image.h"
-#include <iomanip>
 
-Image::Image(string filename) :removed(), restored() {
-	std::cout << "Loading image...\n";
+Image::Image():height(0), width(0), max_val(0) {};
+Image::Image(QString filename) {
+	qDebug() << "Loading image...";
 
-	ifstream file("images/in/" + filename);
-	if (!file) {
-		throw runtime_error("Unable to open file in Image constructor");
+	height = 0; width = 0; max_val = 0;
+
+	QFile file(filename);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		qDebug() << "Unable to open file in Image constructor";
+		return;
 	}
 
-	string header;
-	file >> header;
-	file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');  
+	QTextStream in(&file);
 
-	if (header != "P2") {
-		throw runtime_error("Invalid PGM file");
+	if (in.readLine() != "P2") {
+		qDebug() << "Invalid PGM file";
+		return;
 	}
 
-	while (file.peek() == '#') {
-		file.ignore(numeric_limits<streamsize>::max(), '\n');
-	}
-	
-	file >> width >> height >> max_val;
-	original.resize(width * height);
+	qint64 pos = in.pos();
+	if (!in.readLine().startsWith('#'))
+		in.seek(pos);
+
+	in >> width >> height >> max_val;
+	imageData.resize(width * height);
+
 	for (int i = 0; i < width * height; i++) {
-		file >> original(i);
+		in >> imageData(i);
 	}
 
 	file.close();
 
-	std::cout << "Image loaded, dimensions: " << width << "x" << height << std::endl;
+	qDebug() << "Image loaded, dimensions:" << width << "x" << height;
 }
 
 void Image::remove(size_t percent) {
-	std::cout << "Removing " << percent << "%...\n";
+	qDebug() << "Removing " << percent << "%...";
 
 	if (width <= 2 || height <= 2) {
 		throw runtime_error("Image width and height must be greater than 2");
@@ -42,7 +45,6 @@ void Image::remove(size_t percent) {
 		throw runtime_error("Image dimensions are too large");
 	}
 
-	removed = original;
 	random_device rd;
 	mt19937 gen(rd());
 	uniform_int_distribution<> X(1, static_cast<int>(width - 2));
@@ -51,7 +53,7 @@ void Image::remove(size_t percent) {
 	size_t n = static_cast<size_t>((width - 2) * (height - 2) * percent / 100);
 
 	for (size_t i = 0; i < n; i++) {
-		int& pixel = removed[width * Y(gen) + X(gen)];
+		int& pixel = imageData[width * Y(gen) + X(gen)];
 
 		if (pixel == 0) {
 			i--;
@@ -61,32 +63,15 @@ void Image::remove(size_t percent) {
 		pixel = 0;
 	}
 }
-void Image::saveRemoved() {
-	if (removed.size() == 0) {
-		throw runtime_error("Removed image cannot be empty");
-	}
-
-	ofstream file("images/out/imageRemovedPixels.pgm");
-	if (!file) {
-		throw runtime_error("Unable to open file in saveRemoved");
-	}
-
-	file << "P2\n" << "# pixels removed\n" << width << " " << height << endl << max_val << endl;
-
-	for (int i = 0; i < width * height; i++) {
-		file << removed(i) << endl;
-	}
-}
-
 void Image::restore() {
-	std::cout << "\nImage restoration started\n";
-	std::cout << "Creating sparse matrix...\n";
+	qDebug() << "\nImage restoration started";
+	qDebug() << "Creating sparse matrix...";
 	size_t size = width * height;
 	SparseMatrix<double, RowMajor> m(size, size);
 	m.reserve(5 * size);
 	
 	for (size_t i = 0; i < size; i++) {
-		if (removed(i) == 0) {
+		if (imageData(i) == 0) {
 			m.insert(i, i) = 4.;
 
 			if (i - 1 >= 0) {
@@ -107,9 +92,8 @@ void Image::restore() {
 		}
 
 		double progress = static_cast<double>(i + 1) / size * 100;
-		ostringstream oss;
-		oss << fixed << setprecision(2) << progress << "%";
-		printf("\33[2K\r%s", oss.str().c_str());
+		QString progressStr = QString("Progress: %1%").arg(progress, 0, 'f', 2);
+		qDebug().noquote().nospace() << "\r" << progressStr;
 	}
 
 	Eigen::initParallel();
@@ -118,35 +102,42 @@ void Image::restore() {
 	Eigen::setNbThreads(n);
 	
 	BiCGSTAB <SparseMatrix<double,RowMajor>> solver;
-	std::cout << "\nComputing BiCGSTAB...\n";
+	qDebug() << "\nComputing BiCGSTAB...\n";
 	solver.setMaxIterations(100000);
 	solver.setTolerance(1E-8);
 	solver.compute(m);
 
-	std::cout << "Solving...\n";
-	VectorXd removed_d = removed.cast<double>();
+	qDebug() << "Solving...\n";
+	VectorXd removed_d = imageData.cast<double>();
 	VectorXd restored_d = solver.solve(removed_d);
 
-	std::cout << "# Iterations:	" << solver.iterations() << std::endl;
-	std::cout << "Estimated error: " << solver.error() << std::endl;
+	qDebug() << "# Iterations:	" << solver.iterations();
+	qDebug() << "Estimated error: " << solver.error();
 
-	restored = restored_d.cast<int>();
+	imageData = restored_d.cast<int>();
 }
-void Image::saveRestored() {
-	std::cout << "\nSaving restored image...";
 
-	if (restored.size() == 0) {
-		throw runtime_error("Restored image cannot be empty");
+void Image::saveRestored(QString filename) {
+	QFile file(filename);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		throw std::runtime_error("Unable to open file for writing");
 	}
 
-	ofstream file("images/out/imageRestoredPixels.pgm");
-	if (!file) {
-		throw runtime_error("Unable to open file in saveRestored");
-	}
+	QTextStream out(&file);
 
-	file << "P2\n" << "# pixels restored\n" << width << " " << height << endl << max_val << endl;
+	// Write the header
+	out << "P2\n";
+	out << "# Created by ImageRestorer - restored by Laplace interpolation\n";
+	out << width << " " << height << "\n";
+	out << max_val << "\n";
 
+	// Write the pixel data
 	for (int i = 0; i < width * height; i++) {
-		file << restored(i) << endl;
+		out << imageData(i) << " ";
+		if ((i + 1) % width == 0) { // end of a row
+			out << "\n";
+		}
 	}
+
+	file.close();
 }

@@ -1,12 +1,14 @@
 #pragma once
 
-#include <iostream>
-#include <fstream>
 #include <random>
 #include <Eigen/Sparse>
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/Core>
 #include <omp.h>
+#include <iomanip>
+#include <QFile>
+#include <QTextStream>
+#include <QDebug>
 
 using namespace std;
 using namespace Eigen;
@@ -14,19 +16,17 @@ using namespace Eigen;
 class Image
 {
 private:
-	VectorXi original;
-	VectorXi removed;
-	VectorXi restored;
+	VectorXi imageData;
 	size_t width;
 	size_t height;
 	size_t max_val;
 
 public:
-	Image(string filename);
+	Image();
+	Image(QString filename);
 	void remove(size_t percent);
-	void saveRemoved();
 	void restore();
-	void saveRestored();
+	void saveRestored(QString filename);
 
 };
 

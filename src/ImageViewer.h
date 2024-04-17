@@ -4,6 +4,7 @@
 #include <QtWidgets>
 #include "ui_ImageViewer.h"
 #include "ViewerWidget.h"
+#include "Image.h"
 
 class ImageViewer : public QMainWindow
 {
@@ -15,9 +16,9 @@ public:
 private:
 	Ui::ImageViewerClass* ui;
 	ViewerWidget* vW;
-
 	QSettings settings;
 	QMessageBox msgBox;
+	Image image;
 
 	//Event filters
 	bool eventFilter(QObject* obj, QEvent* event);
