@@ -18,7 +18,7 @@ private:
 	ViewerWidget* vW;
 	QSettings settings;
 	QMessageBox msgBox;
-	Image image;
+	Image imagePGM;
 
 	//Event filters
 	bool eventFilter(QObject* obj, QEvent* event);
@@ -48,6 +48,10 @@ private slots:
 	void on_actionClear_triggered();
 	void on_actionExit_triggered();
 
+
 	//Tools slots
 	void on_pushButtonClear_clicked();
+	void on_pushButtonRemove_clicked();
+	void on_pushButtonRestore_clicked();
+
 };

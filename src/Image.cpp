@@ -1,7 +1,7 @@
 #include "Image.h"
 
 Image::Image():height(0), width(0), max_val(0) {};
-Image::Image(QString filename) {
+Image::Image(QString filename):view(view) {
 	qDebug() << "Loading image...";
 
 	height = 0; width = 0; max_val = 0;
@@ -36,6 +36,11 @@ Image::Image(QString filename) {
 }
 
 void Image::remove(size_t percent) {
+	if (imageData.size() == 0) {
+		qDebug() << "No image";
+		return;
+	}
+
 	qDebug() << "Removing " << percent << "%...";
 
 	if (width <= 2 || height <= 2) {
@@ -53,7 +58,7 @@ void Image::remove(size_t percent) {
 	size_t n = static_cast<size_t>((width - 2) * (height - 2) * percent / 100);
 
 	for (size_t i = 0; i < n; i++) {
-		int& pixel = imageData[width * Y(gen) + X(gen)];
+		int& pixel = imageData(width * Y(gen) + X(gen));
 
 		if (pixel == 0) {
 			i--;
@@ -62,6 +67,8 @@ void Image::remove(size_t percent) {
 
 		pixel = 0;
 	}
+
+	qDebug() << "Done";
 }
 void Image::restore() {
 	qDebug() << "\nImage restoration started";
@@ -117,7 +124,9 @@ void Image::restore() {
 	imageData = restored_d.cast<int>();
 }
 
-void Image::saveRestored(QString filename) {
+void Image::save(QString filename) {
+	qDebug() << "Saving image...";
+
 	QFile file(filename);
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
 		throw std::runtime_error("Unable to open file for writing");
@@ -140,4 +149,6 @@ void Image::saveRestored(QString filename) {
 	}
 
 	file.close();
+
+	qDebug() << "Done";
 }

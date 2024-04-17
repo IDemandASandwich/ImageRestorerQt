@@ -113,7 +113,7 @@ void ImageViewer::on_actionOpen_triggered()
 {
 	QString folder = settings.value("folder_img_load_path", "").toString();
 
-	QString fileFilter = "Image data (*.bmp *.gif *.jpg *.jpeg *.png *.pbm *.pgm *.ppm .*xbm .* xpm);;All files (*)";
+	QString fileFilter = "Image data (*.pgm)";
 	QString fileName = QFileDialog::getOpenFileName(this, "Load image", folder, fileFilter);
 	if (fileName.isEmpty()) { return; }
 
@@ -125,28 +125,20 @@ void ImageViewer::on_actionOpen_triggered()
 		msgBox.setIcon(QMessageBox::Warning);
 		msgBox.exec();
 	}
-
-	image = Image(fileName);
+	
+	imagePGM = Image(fileName);
 }
 void ImageViewer::on_actionSave_as_triggered()
 {
 	QString folder = settings.value("folder_img_save_path", "").toString();
 
-	QString fileFilter = "Image data (*.bmp *.gif *.jpg *.jpeg *.png *.pbm *.pgm *.ppm .*xbm .* xpm);;All files (*)";
+	QString fileFilter = "Image data (*.pgm)";
 	QString fileName = QFileDialog::getSaveFileName(this, "Save image", folder, fileFilter);
 	if (!fileName.isEmpty()) {
 		QFileInfo fi(fileName);
 		settings.setValue("folder_img_save_path", fi.absoluteDir().absolutePath());
 
-		if (!saveImage(fileName)) {
-			msgBox.setText("Unable to save image.");
-			msgBox.setIcon(QMessageBox::Warning);
-		}
-		else {
-			msgBox.setText(QString("File %1 saved.").arg(fileName));
-			msgBox.setIcon(QMessageBox::Information);
-		}
-		msgBox.exec();
+		imagePGM.save(fileName);
 	}
 }
 void ImageViewer::on_actionClear_triggered()
@@ -161,6 +153,14 @@ void ImageViewer::on_actionExit_triggered()
 void ImageViewer::on_pushButtonClear_clicked()
 {
 	vW->clear();
+}
+
+void ImageViewer::on_pushButtonRemove_clicked() {
+	imagePGM.remove(50);
+}
+
+void ImageViewer::on_pushButtonRestore_clicked() {
+	imagePGM.restore();
 }
 
 //Other

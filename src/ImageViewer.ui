@@ -31,7 +31,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>650</width>
+         <width>648</width>
          <height>542</height>
         </rect>
        </property>
@@ -106,6 +106,20 @@
             </property>
             <property name="text">
              <string>Clear</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButtonRemove">
+            <property name="text">
+             <string>Remove 50%</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButtonRestore">
+            <property name="text">
+             <string>Restore</string>
             </property>
            </widget>
           </item>

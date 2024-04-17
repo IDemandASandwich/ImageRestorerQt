@@ -9,6 +9,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QDebug>
+#include "ViewerWidget.h"
 
 using namespace std;
 using namespace Eigen;
@@ -16,6 +17,7 @@ using namespace Eigen;
 class Image
 {
 private:
+	ViewerWidget* view;
 	VectorXi imageData;
 	size_t width;
 	size_t height;
@@ -26,7 +28,7 @@ public:
 	Image(QString filename);
 	void remove(size_t percent);
 	void restore();
-	void saveRestored(QString filename);
+	void save(QString filename);
 
 };
 
