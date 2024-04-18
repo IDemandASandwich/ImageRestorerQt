@@ -126,7 +126,7 @@ void ImageViewer::on_actionOpen_triggered()
 		msgBox.exec();
 	}
 	
-	imagePGM = Image(fileName);
+	vW->loadPGM(fileName);
 }
 void ImageViewer::on_actionSave_as_triggered()
 {
@@ -138,7 +138,7 @@ void ImageViewer::on_actionSave_as_triggered()
 		QFileInfo fi(fileName);
 		settings.setValue("folder_img_save_path", fi.absoluteDir().absolutePath());
 
-		imagePGM.save(fileName);
+		vW->savePGM(fileName);
 	}
 }
 void ImageViewer::on_actionClear_triggered()
@@ -150,21 +150,14 @@ void ImageViewer::on_actionExit_triggered()
 	this->close();
 }
 
-void ImageViewer::on_pushButtonClear_clicked()
-{
-	vW->clear();
-}
-
 void ImageViewer::on_pushButtonRemove_clicked() {
-	imagePGM.remove(50);
+	vW->removePgmPixels(ui->spinBoxPercent->value());
 }
-
 void ImageViewer::on_pushButtonRestore_clicked() {
-	imagePGM.restore();
+	vW->restorePgmPixels();
 }
 
 //Other
 void ImageViewer::initializeButtonGroup()
 {
-
 }

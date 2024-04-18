@@ -4,7 +4,6 @@
 #include <QtWidgets>
 #include "ui_ImageViewer.h"
 #include "ViewerWidget.h"
-#include "Image.h"
 
 class ImageViewer : public QMainWindow
 {
@@ -18,7 +17,6 @@ private:
 	ViewerWidget* vW;
 	QSettings settings;
 	QMessageBox msgBox;
-	Image imagePGM;
 
 	//Event filters
 	bool eventFilter(QObject* obj, QEvent* event);
@@ -50,8 +48,6 @@ private slots:
 
 
 	//Tools slots
-	void on_pushButtonClear_clicked();
 	void on_pushButtonRemove_clicked();
 	void on_pushButtonRestore_clicked();
-
 };
