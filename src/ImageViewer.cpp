@@ -15,6 +15,8 @@ ImageViewer::ImageViewer(QWidget* parent)
 	vW->setObjectName("ViewerWidget");
 	vW->installEventFilter(this);
 
+
+
 	initializeButtonGroup();
 }
 
@@ -155,6 +157,9 @@ void ImageViewer::on_pushButtonRemove_clicked() {
 }
 void ImageViewer::on_pushButtonRestore_clicked() {
 	vW->restorePgmPixels();
+}
+void ImageViewer::on_pushButtonEOC_clicked() {
+	vW->EOC(ui->spinBoxN->value());
 }
 
 //Other

@@ -286,7 +286,7 @@ void ViewerWidget::restorePgmPixels() {
 	Eigen::setNbThreads(n);
 
 	BiCGSTAB <SparseMatrix<double, RowMajor>> solver;
-	qDebug() << "Computing BiCGSTAB...";
+	qDebug() << "\nComputing BiCGSTAB...";
 	solver.setMaxIterations(100000);
 	solver.setTolerance(1E-8);
 	solver.compute(m);
@@ -296,7 +296,7 @@ void ViewerWidget::restorePgmPixels() {
 	VectorXd restored_d = solver.solve(removed_d);
 
 	qDebug() << "# Iterations:	" << solver.iterations();
-	qDebug() << "Estimated error: " << solver.error() << "-----------------\n";
+	qDebug() << "Estimated error: " << solver.error() << "\n-----------------\n";
 
 	imagePGM = restored_d.cast<int>();
 
@@ -304,6 +304,179 @@ void ViewerWidget::restorePgmPixels() {
 		setPixel(i, imagePGM(i));
 	}
 	update();
+}
+void ViewerWidget::EOC(int n) {
+	auto f = [](double x, double y, int n) {
+		double ret = 0.0;
+		for (int i = 1; i <= n; i++) {
+			double csch = 1.0 / sinh(M_PI * i);
+			ret += (-(4.0 * (-1 + pow(-1, i)) * csch) / (pow(M_PI, 3) * pow(i, 3))) * (
+				sin(M_PI * y * i) * sinh(M_PI * (1 - x) * i) +
+				sin(M_PI * y * i) * sinh(M_PI * x * i) +
+				sin(M_PI * x * i) * (
+					sinh(M_PI * (1 - y) * i) +
+					sinh(M_PI * y * i)
+					)
+				);
+		};
+		return ret;
+		};
+	int m = n + 1;
+	double h = 1.0 / n;
+
+	int n2 = 2 * n;
+	int m2 = n2 + 1;
+	double h2 = 1.0 / n2;
+
+	VectorXd original(m * m);
+
+	for (size_t i = 0; i < m; i++) {
+		double y = i * h;
+		for (size_t j = 0; j < m; j++) {
+			double x = j * h;
+			double z = f(x, y, 2);
+			original(j + i * m) = z;
+		}
+	}
+
+	VectorXd restored = restore(n);
+
+	QFile fileR("C:/Users/cyfra/Desktop/School/year_2/semester_4/partial-differential-equations/EOC_restored.csv");
+	if (!fileR.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		qDebug() << "Unable to open file EOC_restored.csv for writing";
+		return;
+	}
+	QTextStream outR(&fileR);
+
+	for (size_t i = 0; i < m; i++) {
+		double y = i * h;
+		for (size_t j = 0; j < m; j++) {
+			double x = j * h;
+
+			outR << x << "," << y << "," << restored(j + i * m) << "\n";
+		}
+	}
+
+	fileR.close();
+
+	// EOC
+	double Eh = 0;
+	for (int i = 0; i < restored.size(); i++) {
+		Eh += h * fabs(restored(i) - original(i));
+	}
+
+	VectorXd restored2 = restore(n2);
+	VectorXd original2(m2 * m2);
+	for (size_t i = 0; i < m2; i++) {
+		double y = i * h2;
+		for (size_t j = 0; j < m2; j++) {
+			double x = j * h2;
+			double z = f(x, y, 2);
+			original2(j + i * m2) = z;
+		}
+	}
+
+	double Eh2 = 0;
+	for (int i = 0; i < restored2.size(); i++) {
+		Eh2 += h2 * fabs(restored2(i) - original2(i));
+	}
+
+	double EOC = log2(Eh / Eh2);
+	qDebug() << "EOC = " << EOC;
+}
+VectorXd ViewerWidget::restore(int n) {
+	auto f = [](double x, double y, size_t n) {
+		double ret = 0.0;
+		for (int i = 1; i <= n; i++) {
+			double csch = 1.0 / sinh(M_PI * i);
+			ret += (-(4.0 * (-1 + pow(-1, i)) * csch) / (pow(M_PI, 3) * pow(i, 3))) * (
+				sin(M_PI * y * i) * sinh(M_PI * (1 - x) * i) +
+				sin(M_PI * y * i) * sinh(M_PI * x * i) +
+				sin(M_PI * x * i) * (
+					sinh(M_PI * (1 - y) * i) +
+					sinh(M_PI * y * i)
+					)
+				);
+		};
+		return ret;
+		};
+	int m = n + 1;
+	VectorXd removed(m * m), restored(m * m);
+	double h = 1.0 / n;
+
+	// boundary conditions
+	QFile file("C:/Users/cyfra/Desktop/School/year_2/semester_4/partial-differential-equations/EOC_removed.csv");
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		qDebug() << "Unable to open file EOC_removed.csv for writing";
+		return VectorXd();
+	}
+	QTextStream out(&file);
+
+	for (size_t i = 0; i < m; i++) {
+		double y = i * h;
+		for (size_t j = 0; j < m; j++) {
+			double x = j * h;
+			double z = f(x, y, 1);
+
+			if (i == 0 || i == m - 1 || j == 0 || j == m - 1) {
+				removed(j + i * m) = z;
+				out << x << "," << y << "," << z << "\n";
+			}
+			else {
+				removed(j + i * m) = 0.0;
+			}
+		}
+	}
+
+	file.close();
+
+	// restoring
+	size_t size = m * m;
+	Eigen::SparseMatrix<double, RowMajor> A(size, size);
+	A.reserve(5 * size);
+
+	for (int i = 0; i < size; i++) {
+		if (removed(i) == 0) {
+			A.insert(i, i) = 4.0 / pow(h, 2);
+
+			if (i - 1 >= 0) {
+				A.insert(i, i - 1) = -1.0 / pow(h, 2);
+			}
+			if (i + 1 < size) {
+				A.insert(i, i + 1) = -1.0 / pow(h, 2);
+			}
+			if (i - m >= 0) {
+				A.insert(i, i - m) = -1.0 / pow(h, 2);
+			}
+			if (i + m < size) {
+				A.insert(i, i + m) = -1.0 / pow(h, 2);
+			}
+		}
+		else {
+			A.insert(i, i) = 1.0;
+		}
+
+		double progress = static_cast<double>(i + 1) / size * 100;
+		printf("\r%.2f%%", progress);
+		fflush(stdout);
+	}
+
+	initParallel();
+	int p = 8;
+	omp_set_num_threads(p);
+	Eigen::setNbThreads(p);
+
+	BiCGSTAB <SparseMatrix<double, RowMajor>> solver;
+	qDebug() << "\nComputing BiCGSTAB...";
+	solver.setMaxIterations(100000);
+	solver.setTolerance(1E-8);
+	solver.compute(A);
+
+	qDebug() << "Solving...";
+	restored = solver.solve(removed);
+	qDebug() << "# Iterations:	" << solver.iterations() << "\n";
+
+	return restored;
 }
 
 //Slots

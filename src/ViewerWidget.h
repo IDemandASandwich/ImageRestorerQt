@@ -58,6 +58,8 @@ public:
 	void removePgmPixels(size_t percent);
 	void restorePgmPixels();
 	void savePGM(QString filename);
+	void EOC(int n);
+	VectorXd restore(int n);
 
 public slots:
 	void paintEvent(QPaintEvent* event) Q_DECL_OVERRIDE;

@@ -50,4 +50,5 @@ private slots:
 	//Tools slots
 	void on_pushButtonRemove_clicked();
 	void on_pushButtonRestore_clicked();
+	void on_pushButtonEOC_clicked();
 };
