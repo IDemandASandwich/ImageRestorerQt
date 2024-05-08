@@ -332,9 +332,9 @@ void ViewerWidget::EOC(int n) {
 	}
 	QTextStream out(&file);
 
-	for (size_t i = 0; i < n + 1; i++) {
+	for (int i = 0; i < n + 1; i++) {
 		double y = i * h;
-		for (size_t j = 0; j < n + 1; j++) {
+		for (int j = 0; j < n + 1; j++) {
 			double x = j * h;
 			double z = f(x, y, 5);
 			original(j + i * (n+1)) = z;
@@ -356,9 +356,9 @@ void ViewerWidget::EOC(int n) {
 	}
 	QTextStream outR(&fileR);
 
-	for (size_t i = 0; i < (n + 1); i++) {
+	for (int i = 0; i < n + 1; i++) {
 		double y = i * h;
-		for (size_t j = 0; j < (n + 1); j++) {
+		for (int j = 0; j < n + 1; j++) {
 			double x = j * h;
 
 			outR << x << "," << y << "," << restored(j + i * (n+1)) << "\n";
@@ -368,17 +368,19 @@ void ViewerWidget::EOC(int n) {
 	fileR.close();
 
 	// EOC
+	int p = 10;
 	double Eh = 0;
 	for (int i = 0; i < restored.size(); i++) {
-		Eh += h * fabs(restored(i) - original(i));
+		Eh += h * pow(fabs(original(i)-restored(i)), p);
 	}
+	Eh = pow(Eh, 1.0 / p);
 
 	int m = 2 * n;
 	double h2 = 1.0 / m;
 	VectorXd original2((m + 1) * (m + 1));
-	for (size_t i = 0; i < m+1; i++) {
+	for (int i = 0; i < m+1; i++) {
 		double y = i * h2;
-		for (size_t j = 0; j < m+1; j++) {
+		for (int j = 0; j < m+1; j++) {
 			double x = j * h2;
 			double z = f(x, y, 5);
 			original2(j + i * (m+1)) = z;
@@ -389,14 +391,15 @@ void ViewerWidget::EOC(int n) {
 
 	double Eh2 = 0.0;
 	for (int i = 0; i < restored2.size(); i++) {
-		Eh2 += h2 * fabs(restored2(i) - original2(i));
+		Eh2 += h2 * pow(fabs(original2(i)-restored2(i)), p);
 	}
+	Eh2 = pow(Eh2, 1.0 / p);
 
 	double EOC = log2(Eh / Eh2);
 	qDebug() << "EOC = " << EOC;
 }
 VectorXd ViewerWidget::restore(int n) {
-	auto f = [](double x, double y, size_t n) {
+	auto f = [](double x, double y, int n) {
 		double ret = 0.0;
 		for (int i = 1; i <= n; i++) {
 			double csch = 1.0 / sinh(M_PI * i);
@@ -411,6 +414,7 @@ VectorXd ViewerWidget::restore(int n) {
 		};
 		return ret;
 		};
+
 	VectorXd removed((n+1) * (n+1)), restored((n+1) * (n+1));
 	double h = 1.0 / n;
 
@@ -419,25 +423,24 @@ VectorXd ViewerWidget::restore(int n) {
 		double y = i * h;
 		for (int j = 0; j < n+1; j++) {
 			double x = j * h;
-			double z = f(x, y, 5);
+			double z = -DBL_MAX;
 
 			if (i == 0 || i == n || j == 0 || j == n) {
-				removed(j + i * (n+1)) = z;
+				z = f(x, y, 5);
 			}
-			else {
-				removed(j + i * (n+1)) = -1.0;
-			}
+
+			removed(j + i * (n + 1)) = z;
 		}
 	}
 
 	// restoring
-	size_t size = (n+1) * (n+1);
+	int size = (n+1) * (n+1);
 	Eigen::SparseMatrix<double, RowMajor> A(size, size);
 	A.reserve(5 * size);
 
 	for (int i = 0; i < size; i++) {
-		if (removed(i) < 0) {
-			removed(i) = 0;
+		if (removed(i) == -DBL_MAX) {
+			removed(i) = 0.0;
 			A.insert(i, i) = 4.0 / pow(h, 2);
 
 			if (i - 1 >= 0) {
@@ -446,10 +449,10 @@ VectorXd ViewerWidget::restore(int n) {
 			if (i + 1 < size) {
 				A.insert(i, i + 1) = -1.0 / pow(h, 2);
 			}
-			if (i - n+1 >= 0) {
+			if (i - (n+1) >= 0) {
 				A.insert(i, i - (n+1)) = -1.0 / pow(h, 2);
 			}
-			if (i + n+1 < size) {
+			if (i + (n+1) < size) {
 				A.insert(i, i + (n+1)) = -1.0 / pow(h, 2);
 			}
 		}
